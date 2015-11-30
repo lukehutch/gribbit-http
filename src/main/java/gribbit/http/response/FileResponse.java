@@ -161,10 +161,6 @@ public class FileResponse extends GeneralResponse implements AutoCloseable {
 
         sendHeaders(ctx);
 
-        // TODO: when a file is requested, if it's a compressible type, schedule it to be gzipped on disk, and
-        // return the gzipped version instead of the original version, as long as the gzipped version has a
-        // newer timestamp.
-
         if (!request.isHEADRequest()) {
             // FileRegions cannot be used with SSL, have to use chunked content.
             // TODO: Does this work with HTTP2?
@@ -188,24 +184,6 @@ public class FileResponse extends GeneralResponse implements AutoCloseable {
                 sendFileFuture = ctx.writeAndFlush(new HttpChunkedInput(new ChunkedFile(raf,
                         0, contentLength, 1)), ctx.newProgressivePromise());
             }
-
-            //    // Can add ChannelProgressiveFutureListener to sendFileFuture if we need to track
-            //    // progress (e.g. to update user's UI over a web socket to show download progress.)
-            //    sendFileFuture.addListener(new ChannelProgressiveFutureListener() {
-            //        @Override
-            //        public void operationProgressed(ChannelProgressiveFuture future, long progress, long total) {
-            //            if (total < 0) { // Total unknown
-            //                System.err.println(future.channel() + " Progress: " + progress);
-            //            } else {
-            //                System.err.println(future.channel() + " Progress: " + progress + " / " + total);
-            //            }
-            //        }
-            //    
-            //        @Override
-            //        public void operationComplete(ChannelProgressiveFuture future) {
-            //            System.err.println(future.channel() + " Transfer complete.");
-            //        }
-            //    });
         }
     }
 
