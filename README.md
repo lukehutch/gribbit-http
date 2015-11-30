@@ -1,5 +1,5 @@
 # gribbit-http
-The Gribbit HTTP server. A complete but bare-bones HTTP server built on top of Netty.
+The Gribbit HTTP server. A complete but bare-bones HTTP server built on top of Netty, intended as a platform for a more full-featured webserver with routing, templating etc.
 
 Example usage:
 
