@@ -9,9 +9,9 @@ import gribbit.http.response.exception.ResponseException;
 import gribbit.http.server.GribbitHttpServer;
 
 public class GribbitHttpTest {
-
     public static void main(String[] args) {
-        new GribbitHttpServer().addHttpRequestHandler(new HttpRequestHandler() {
+        new GribbitHttpServer() //
+        .addHttpRequestHandler(new HttpRequestHandler() {
             @Override
             public GeneralResponse handle(Request request) throws ResponseException {
                 if (request.getURL().equals("/")) {
@@ -21,7 +21,8 @@ public class GribbitHttpTest {
                     return null;
                 }
             }
-        }).addHttpRequestHandler(new HttpRequestHandler() {
+        }) //
+        .addHttpRequestHandler(new HttpRequestHandler() {
             @Override
             public GeneralResponse handle(Request request) throws ResponseException {
                 if (request.getURL().equals("/frog.jpg")) {
@@ -31,7 +32,7 @@ public class GribbitHttpTest {
                     return null;
                 }
             }
-        }).start();
+        }) //
+        .start();
     }
-
 }
