@@ -159,27 +159,6 @@ public class FileResponse extends GeneralResponse implements AutoCloseable {
     @Override
     public void writeResponse(ChannelHandlerContext ctx) throws Exception {
 
-        //        // If the file contents have changed since the last time the file was hashed,
-        //        // schedule the file to be hashed in the background so that future references to the
-        //        // file's URI in a src/href attribute of served HTML templates will include a hash
-        //        // URI rather than the original URI for the file, allowing the browser to cache the
-        //        // file indefinitely until it changes.
-        //        CacheExtension.updateHashURI(request.getURLPathUnhashed(), file);
-        //
-        //        // If file was already cached, and the request URI included the hash key, then this is
-        //        // the first time this client has fetched this file since the browser cache was last
-        //        // cleared. Mark this resource as indefinitely cached. If the file is not being served
-        //        // on a hash URI, then at least set the Last-Modified header, so that if the client
-        //        // requests the same unmodified resource again on the same non-hash URI, the server can
-        //        // return Not Modified instead of serving the contents of the file.
-        //
-        //        String hashKey = request.getURLHashKey();
-        //        if (hashKey != null) {
-        //            // TODO: Need to do this before cache headers are set
-        //            // Cache forever
-        //            maxAgeSeconds = -1;
-        //        }
-
         sendHeaders(ctx);
 
         // TODO: when a file is requested, if it's a compressible type, schedule it to be gzipped on disk, and
