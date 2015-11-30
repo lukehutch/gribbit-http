@@ -158,31 +158,31 @@ public class FileResponse extends GeneralResponse implements AutoCloseable {
 
     @Override
     public void writeResponse(ChannelHandlerContext ctx) throws Exception {
+        // FileRegions cannot be used with SSL, have to use chunked content.
+        // TODO: Does this work with HTTP2?
+        boolean isChunked = ctx.pipeline().get(SslHandler.class) != null;
+
+        if (isChunked) {
+            addHeader(TRANSFER_ENCODING, CHUNKED);
+        }
 
         sendHeaders(ctx);
 
         if (!request.isHEADRequest()) {
-            // FileRegions cannot be used with SSL, have to use chunked content.
-            // TODO: Does this work with HTTP2?
-            boolean isChunked = ctx.pipeline().get(SslHandler.class) != null;
 
             // Write file content to channel. Both methods will close file after sending, see:
             // https://github.com/netty/netty/issues/2474#issuecomment-117905496
-            @SuppressWarnings("unused")
-            ChannelFuture sendFileFuture;
             if (!isChunked) {
                 // Use FileRegions if possible, which supports zero-copy / mmio.
-                sendFileFuture = ctx.write(new DefaultFileRegion(raf.getChannel(), 0, contentLength),
-                        ctx.newProgressivePromise());
+                ctx.write(new DefaultFileRegion(raf.getChannel(), 0, contentLength), ctx.newProgressivePromise());
                 // Write the end marker
                 ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
             } else {
                 // Can't use FileRegions / zero-copy with SSL
                 // HttpChunkedInput will write the end marker (LastHttpContent) for us, see:
                 // https://github.com/netty/netty/commit/4ba2ce3cbbc55391520cfc98a7d4227630fbf978
-                addHeader(TRANSFER_ENCODING, CHUNKED);
-                sendFileFuture = ctx.writeAndFlush(new HttpChunkedInput(new ChunkedFile(raf,
-                        0, contentLength, 1)), ctx.newProgressivePromise());
+                ctx.writeAndFlush(new HttpChunkedInput(new ChunkedFile(raf, 0, contentLength, 1)),
+                        ctx.newProgressivePromise());
             }
         }
     }
