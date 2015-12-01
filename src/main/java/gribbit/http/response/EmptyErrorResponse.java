@@ -30,7 +30,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.LastHttpContent;
 
-public class EmptyErrorResponse extends GeneralResponse {
+public class EmptyErrorResponse extends Response {
     public EmptyErrorResponse(Request request, HttpResponseStatus status) {
         super(request, status);
     }

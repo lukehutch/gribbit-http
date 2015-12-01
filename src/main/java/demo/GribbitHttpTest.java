@@ -3,7 +3,7 @@ package demo;
 import gribbit.http.request.Request;
 import gribbit.http.request.handler.HttpRequestHandler;
 import gribbit.http.response.FileResponse;
-import gribbit.http.response.GeneralResponse;
+import gribbit.http.response.Response;
 import gribbit.http.response.HTMLResponse;
 import gribbit.http.response.exception.ResponseException;
 import gribbit.http.server.GribbitHttpServer;
@@ -13,7 +13,7 @@ public class GribbitHttpTest {
         new GribbitHttpServer() //
         .addHttpRequestHandler(new HttpRequestHandler() {
             @Override
-            public GeneralResponse handle(Request request) throws ResponseException {
+            public Response handle(Request request) throws ResponseException {
                 if (request.getURL().equals("/")) {
                     return new HTMLResponse(request, "<html><body><p>Request URL: " + request.getURL()
                             + "</p><img src=\"/frog.jpg\">");
@@ -24,7 +24,7 @@ public class GribbitHttpTest {
         }) //
         .addHttpRequestHandler(new HttpRequestHandler() {
             @Override
-            public GeneralResponse handle(Request request) throws ResponseException {
+            public Response handle(Request request) throws ResponseException {
                 if (request.getURL().equals("/frog.jpg")) {
                     return new FileResponse(request, GribbitHttpTest.class.getClassLoader()
                             .getResource("demo/frog.jpg").getPath());

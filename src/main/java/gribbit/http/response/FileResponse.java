@@ -44,7 +44,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
-public class FileResponse extends GeneralResponse implements AutoCloseable {
+public class FileResponse extends Response implements AutoCloseable {
     private RandomAccessFile raf;
 
     public FileResponse(Request request, String path) throws ResponseException {

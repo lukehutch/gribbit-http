@@ -26,7 +26,7 @@
 package gribbit.http.response.exception;
 
 import gribbit.http.request.Request;
-import gribbit.http.response.GeneralResponse;
+import gribbit.http.response.Response;
 import gribbit.http.response.RedirectResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -46,7 +46,7 @@ public class RedirectException extends LightweightResponseException {
     }
 
     @Override
-    public GeneralResponse generateErrorResponse(Request request) {
+    public Response generateErrorResponse(Request request) {
         return new RedirectResponse(request, redirectURL);
     }
 }

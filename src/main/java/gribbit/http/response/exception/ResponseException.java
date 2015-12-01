@@ -27,7 +27,7 @@ package gribbit.http.response.exception;
 
 import gribbit.http.request.Request;
 import gribbit.http.response.ErrorResponse;
-import gribbit.http.response.GeneralResponse;
+import gribbit.http.response.Response;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 /**
@@ -63,7 +63,7 @@ public abstract class ResponseException extends Exception {
     /**
      * Returns a default plaintext Response object for this exception.
      */
-    public GeneralResponse generateErrorResponse(Request request) {
+    public Response generateErrorResponse(Request request) {
         return new ErrorResponse(request, responseStatus, getResponseMessage());
     }
 }

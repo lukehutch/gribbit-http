@@ -35,7 +35,7 @@ import gribbit.http.request.Request;
 import gribbit.http.request.handler.HttpErrorHandler;
 import gribbit.http.request.handler.HttpRequestHandler;
 import gribbit.http.request.handler.WebSocketHandler;
-import gribbit.http.response.GeneralResponse;
+import gribbit.http.response.Response;
 import gribbit.http.response.exception.BadRequestException;
 import gribbit.http.response.exception.InternalServerErrorException;
 import gribbit.http.response.exception.NotFoundException;
@@ -183,7 +183,7 @@ public class HttpRequestDecoder extends SimpleChannelInboundHandler<Object> {
      * See if there is an error handler for the specified exception type, and if so, use it to generate the
      * response.
      */
-    private <E extends ResponseException> GeneralResponse generateErrorResponse(E exception) {
+    private <E extends ResponseException> Response generateErrorResponse(E exception) {
         if (errorHandlers != null) {
             @SuppressWarnings("unchecked")
             HttpErrorHandler<E> errorHandler = (HttpErrorHandler<E>) errorHandlers.get(exception.getClass());
@@ -393,7 +393,7 @@ public class HttpRequestDecoder extends SimpleChannelInboundHandler<Object> {
         if (httpRequestHandlers != null) {
             for (HttpRequestHandler handler : httpRequestHandlers) {
                 // Try generating a response with this HttpRequestHandler. (Auto-calls close() after response sent.)
-                try (GeneralResponse response = handler.handle(request)) {
+                try (Response response = handler.handle(request)) {
                     if (response != null) {
                         // If a response was generated, send it, and don't check any remaining handlers
                         response.send(ctx);
@@ -428,7 +428,7 @@ public class HttpRequestDecoder extends SimpleChannelInboundHandler<Object> {
                             : new InternalServerErrorException(e);
 
                     // Override default error response page if there is a custom handler for this error type
-                    GeneralResponse response = generateErrorResponse(exception);
+                    Response response = generateErrorResponse(exception);
 
                     if (exception instanceof InternalServerErrorException) {
                         // Log backtrace for Internal Server Errors

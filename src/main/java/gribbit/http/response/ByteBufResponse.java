@@ -34,7 +34,7 @@ import io.netty.handler.codec.http.LastHttpContent;
 /**
  * Raw ByteBuf response.
  */
-public class ByteBufResponse extends GeneralResponse {
+public class ByteBufResponse extends Response {
     protected ByteBuf content;
 
     public ByteBufResponse(Request request, HttpResponseStatus status, ByteBuf content, String contentType) {

@@ -38,7 +38,7 @@ import java.io.InputStream;
 /**
  * Chunked (streamed) response.
  */
-public class InputStreamResponse extends GeneralResponse {
+public class InputStreamResponse extends Response {
     protected InputStream contentStream;
 
     public InputStreamResponse(Request request, HttpResponseStatus status, InputStream content,

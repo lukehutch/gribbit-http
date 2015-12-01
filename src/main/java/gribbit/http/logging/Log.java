@@ -26,7 +26,7 @@
 package gribbit.http.logging;
 
 import gribbit.http.request.Request;
-import gribbit.http.response.GeneralResponse;
+import gribbit.http.response.Response;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.Log4JLoggerFactory;
 
@@ -160,7 +160,7 @@ public class Log {
     private static DateTimeFormatter LOG_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
 
     /** Produce log line in Common Log Format -- https://en.wikipedia.org/wiki/Common_Log_Format */
-    private static String produceLogLine(Request request, GeneralResponse response) {
+    private static String produceLogLine(Request request, Response response) {
         StringBuilder buf = new StringBuilder();
         buf.append(request == null ? "-" : request.getOrigin());
         buf.append(" - - [");
@@ -178,7 +178,7 @@ public class Log {
         return buf.toString();
     }
 
-    public static void request(Request request, GeneralResponse response) {
+    public static void request(Request request, Response response) {
         // Don't log favicon requests
         if (!FAVICON_PATTERN.matcher(request.getRawURL().toString()).matches()) {
             String msg = produceLogLine(request, response);
@@ -186,7 +186,7 @@ public class Log {
         }
     }
 
-    public static void request(Request request, GeneralResponse response, Exception exception) {
+    public static void request(Request request, Response response, Exception exception) {
         // Don't log favicon requests
         if (!FAVICON_PATTERN.matcher(request.getRawURL().toString()).matches()) {
             String msg = produceLogLine(request, response);
