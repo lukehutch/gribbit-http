@@ -26,7 +26,7 @@
 package gribbit.http.response.exception;
 
 import gribbit.http.request.Request;
-import gribbit.http.response.EmptyResponse;
+import gribbit.http.response.EmptyErrorResponse;
 import gribbit.http.response.GeneralResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -40,6 +40,6 @@ public class NotModifiedException extends LightweightResponseException {
     
     @Override
     public GeneralResponse generateErrorResponse(Request request) {
-        return new EmptyResponse(request, responseStatus);
+        return new EmptyErrorResponse(request, responseStatus);
     }
 }

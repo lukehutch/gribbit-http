@@ -32,7 +32,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 /**
  * A redirect response.
  */
-public class RedirectResponse extends EmptyResponse {
+public class RedirectResponse extends EmptyErrorResponse {
     public RedirectResponse(Request request, String redirectURL) {
         super(request, HttpResponseStatus.FOUND);
         addHeader(HttpHeaderNames.LOCATION, redirectURL);
