@@ -57,7 +57,7 @@ public class InputStreamResponse extends GeneralResponse {
         sendHeaders(ctx);
 
         if (!request.isHEADRequest()) {
-            ctx.writeAndFlush(new HttpChunkedInput(new ChunkedStream(contentStream, 8192)));
+            ctx.write(new HttpChunkedInput(new ChunkedStream(contentStream, 8192)));
         }
         ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
     }
