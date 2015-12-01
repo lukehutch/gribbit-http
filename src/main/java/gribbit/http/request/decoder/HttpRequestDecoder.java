@@ -205,7 +205,6 @@ public class HttpRequestDecoder extends SimpleChannelInboundHandler<Object> {
                 // Got a new HTTP request -- decode HTTP headers
                 HttpRequest httpReq = (HttpRequest) msg;
                 if (!httpReq.decoderResult().isSuccess()) {
-                    // Headers were malformed
                     throw new BadRequestException(null);
                 }
 
@@ -248,6 +247,9 @@ public class HttpRequestDecoder extends SimpleChannelInboundHandler<Object> {
             } else if (msg instanceof HttpContent) {
                 // Decode HTTP POST body
                 HttpContent chunk = (HttpContent) msg;
+                if (!chunk.decoderResult().isSuccess()) {
+                    throw new BadRequestException(null);
+                }
                 handlePOSTChunk(chunk);
 
             } else if (msg instanceof WebSocketFrame) {
@@ -256,7 +258,8 @@ public class HttpRequestDecoder extends SimpleChannelInboundHandler<Object> {
                     // Connection was never upgraded to websocket
                     throw new BadRequestException();
                 }
-                handleWebSocketFrame(ctx, (WebSocketFrame) msg);
+                WebSocketFrame frame = (WebSocketFrame) msg;
+                handleWebSocketFrame(ctx, frame);
             }
         } catch (Exception e) {
             exceptionCaught(ctx, e);
