@@ -66,7 +66,7 @@ import java.util.HashMap;
  */
 public abstract class GeneralResponse extends Response {
     public static String SERVER_IDENTIFIER = "Gribbit";
-    
+
     protected String contentType;
     protected long contentLength;
     protected boolean gzipContent;
@@ -261,13 +261,16 @@ public abstract class GeneralResponse extends Response {
 
     // -----------------------------------------------------------------------------------------------------
 
+    private static final ZoneId UTC = ZoneId.of("UTC");
+    private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.RFC_1123_DATE_TIME.withZone(UTC);
+
     protected void sendHeaders(ChannelHandlerContext ctx) {
         DefaultHttpResponse httpResponse = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
         HttpHeaders headers = httpResponse.headers();
         headers.add(SERVER, SERVER_IDENTIFIER);
 
         // Date header uses server time, and should use the same clock as Expires and Last-Modified
-        headers.add(DATE, timeNow.format(DateTimeFormatter.RFC_1123_DATE_TIME));
+        headers.add(DATE, dateTimeFormatter.format(timeNow));
 
         // Add an Accept-Encoding: gzip header to the response to let the client know that in future
         // it can send compressed requests. (This header is probably ignored by most clients, because
@@ -311,9 +314,10 @@ public abstract class GeneralResponse extends Response {
             // request.cachedVersionIsOlderThan(serverTimestamp), where serverTimestamp was the timestamp at which
             // the value previously changed, and if the return value is false, throw NotModifiedException.
             if (lastModifiedEpochSeconds > 0L) {
-                headers.add(LAST_MODIFIED,
-                        ZonedDateTime.ofInstant(Instant.ofEpochSecond(lastModifiedEpochSeconds), ZoneId.of("UTC"))
-                                .format(DateTimeFormatter.RFC_1123_DATE_TIME));
+                headers.add(
+                        LAST_MODIFIED,
+                        dateTimeFormatter.format(ZonedDateTime.ofInstant(
+                                Instant.ofEpochSecond(lastModifiedEpochSeconds), UTC)));
             }
 
             //            if (request.isHashURL() && maxAgeSeconds != 0L) {
@@ -326,7 +330,7 @@ public abstract class GeneralResponse extends Response {
             //                // N.B. can set "Cache-Control: public", since the resource is hashed, so it can be served to other
             //                // clients that request it (they would have to know the hash URL to request it in the first place).
             //                headers.add(CACHE_CONTROL, "public, max-age=" + maxAge);
-            //                headers.add(EXPIRES, timeNow.plusSeconds(maxAge).format(DateTimeFormatter.RFC_1123_DATE_TIME));
+            //                headers.add(EXPIRES, dateTimeFormatter.format(timeNow.plusSeconds(maxAge)));
             //                headers.add(ETAG, request.getURLHashKey());
             //                cached = true;
             //            }
@@ -342,7 +346,7 @@ public abstract class GeneralResponse extends Response {
             // Cache 404 messages for 5 minutes to reduce server load
             int cacheTime = 60 * 5;
             headers.add(CACHE_CONTROL, "max-age=" + cacheTime);
-            headers.add(EXPIRES, timeNow.plusSeconds(cacheTime).format(DateTimeFormatter.RFC_1123_DATE_TIME));
+            headers.add(EXPIRES, dateTimeFormatter.format(timeNow.plusSeconds(cacheTime)));
             cached = true;
         }
 
