@@ -32,17 +32,16 @@ import gribbit.http.request.handler.HttpRequestHandler;
 import gribbit.http.request.handler.WebSocketHandler;
 import gribbit.http.response.exception.ResponseException;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpContentDecompressor;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketServerCompressionHandler;
 import io.netty.handler.codec.http2.DefaultHttp2Connection;
@@ -61,6 +60,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.handler.stream.ChunkedWriteHandler;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
@@ -217,6 +217,21 @@ public class GribbitHttpServer {
         }
     }
 
+    // From github.com/netty/netty/blob/master/example/src/main/java/io/netty/example/http2/tiles/Http2Server.java
+    private static SslContext configureTLS() throws CertificateException, SSLException {
+        SelfSignedCertificate ssc = new SelfSignedCertificate();
+        ApplicationProtocolConfig apn = new ApplicationProtocolConfig(Protocol.ALPN,
+                // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+                SelectorFailureBehavior.NO_ADVERTISE,
+                // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+                SelectedListenerFailureBehavior.ACCEPT, ApplicationProtocolNames.HTTP_2,
+                ApplicationProtocolNames.HTTP_1_1);
+
+        return SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey(), null)
+                .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
+                .applicationProtocolConfig(apn).build();
+    }
+
     // -----------------------------------------------------------------------------------------------------
 
     /**
@@ -250,9 +265,9 @@ public class GribbitHttpServer {
 
             ServerBootstrap b = new ServerBootstrap();
             // http://normanmaurer.me/presentations/2014-facebook-eng-netty/slides.html#14.0
-            b.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+            //b.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
 
-            b.option(ChannelOption.SO_BACKLOG, 1024);
+            //b.option(ChannelOption.SO_BACKLOG, 1024);
             b.group(bossGroup, workerGroup) //
                     .channel(NioServerSocketChannel.class) //
                     .handler(new LoggingHandler(LogLevel.DEBUG)) //
@@ -270,22 +285,30 @@ public class GribbitHttpServer {
                             } else {
                                 // TODO: unify this with HTTP 1.1 treatment in http2OrHttpHandler
 
-                                p.addLast(new HttpContentDecompressor(), new HttpServerCodec());
-                                // TODO: We're currently doing manual aggregation of chunked requests (without limiting len) 
-                                /* p.addLast(new HttpObjectAggregator(MAX_CONTENT_LENGTH)); */
-                                p.addLast(new WebSocketServerCompressionHandler());
-                                p.addLast(requestDecoderGroup, httpRequestDecoder);
+                                p.addLast(new HttpServerCodec());
+                                p.addLast(new HttpObjectAggregator(65536));
+                                p.addLast(new ChunkedWriteHandler());
+                                p.addLast(httpRequestDecoder);
+                                
+//                                // p.addLast(new HttpContentDecompressor());
+//                                p.addLast(new HttpServerCodec());
+//                                // TODO: We're currently doing manual aggregation of chunked requests
+//                                // (without limiting len) 
+//                                p.addLast(new HttpObjectAggregator(65536));
+//                                p.addLast(new ChunkedWriteHandler());
+//                                // p.addLast(new WebSocketServerCompressionHandler());
+//                                p.addLast(/*requestDecoderGroup, */ httpRequestDecoder);
                             }
                         }
                     });
 
-            //                // TODO: test these options suggested in http://goo.gl/AHvjmq
-            //                // See also http://normanmaurer.me/presentations/2014-facebook-eng-netty/slides.html#11.0
-            //                b.childOption(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 64 * 1024);
-            //                b.childOption(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 64 * 1024);
-            //                b.childOption(ChannelOption.SO_SNDBUF, 1048576);
-            //                b.childOption(ChannelOption.SO_RCVBUF, 1048576);
-            //                // bootstrap.childOption(ChannelOption.TCP_NODELAY, true);
+            //    // TODO: test these options suggested in http://goo.gl/AHvjmq
+            //    // See also http://normanmaurer.me/presentations/2014-facebook-eng-netty/slides.html#11.0
+            //    b.childOption(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 64 * 1024);
+            //    b.childOption(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 64 * 1024);
+            //    b.childOption(ChannelOption.SO_SNDBUF, 1048576);
+            //    b.childOption(ChannelOption.SO_RCVBUF, 1048576);
+            //    // bootstrap.childOption(ChannelOption.TCP_NODELAY, true);
 
             // TODO: Apache closes KeepAlive connections after a few seconds, see
             //       http://en.wikipedia.org/wiki/HTTP_persistent_connection
@@ -330,21 +353,6 @@ public class GribbitHttpServer {
             requestDecoderGroup.shutdownGracefully();
         }
         return this;
-    }
-
-    // From github.com/netty/netty/blob/master/example/src/main/java/io/netty/example/http2/tiles/Http2Server.java
-    private static SslContext configureTLS() throws CertificateException, SSLException {
-        SelfSignedCertificate ssc = new SelfSignedCertificate();
-        ApplicationProtocolConfig apn = new ApplicationProtocolConfig(Protocol.ALPN,
-                // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
-                SelectorFailureBehavior.NO_ADVERTISE,
-                // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
-                SelectedListenerFailureBehavior.ACCEPT, ApplicationProtocolNames.HTTP_2,
-                ApplicationProtocolNames.HTTP_1_1);
-
-        return SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey(), null)
-                .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
-                .applicationProtocolConfig(apn).build();
     }
 
     /** Shut down the HTTP server. (It may be restarted again once it has been shut down.) */

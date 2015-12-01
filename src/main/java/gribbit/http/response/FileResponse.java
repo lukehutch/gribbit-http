@@ -26,8 +26,6 @@
 package gribbit.http.response;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN;
-import static io.netty.handler.codec.http.HttpHeaderNames.TRANSFER_ENCODING;
-import static io.netty.handler.codec.http.HttpHeaderValues.CHUNKED;
 import gribbit.http.request.Request;
 import gribbit.http.response.exception.NotFoundException;
 import gribbit.http.response.exception.NotModifiedException;
@@ -158,12 +156,8 @@ public class FileResponse extends GeneralResponse implements AutoCloseable {
     public void writeResponse(ChannelHandlerContext ctx) throws Exception {
         // FileRegions cannot be used with SSL, have to use chunked content.
         // TODO: Does this work with HTTP2?
-        boolean isChunked = ctx.pipeline().get(SslHandler.class) != null;
-
-        if (isChunked) {
-            addHeader(TRANSFER_ENCODING, CHUNKED);
-        }
-
+        isChunked |= ctx.pipeline().get(SslHandler.class) != null;
+        
         sendHeaders(ctx);
 
         if (!request.isHEADRequest()) {

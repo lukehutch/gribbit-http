@@ -37,6 +37,8 @@ import static io.netty.handler.codec.http.HttpHeaderNames.LAST_MODIFIED;
 import static io.netty.handler.codec.http.HttpHeaderNames.PRAGMA;
 import static io.netty.handler.codec.http.HttpHeaderNames.SERVER;
 import static io.netty.handler.codec.http.HttpHeaderNames.SET_COOKIE;
+import static io.netty.handler.codec.http.HttpHeaderNames.TRANSFER_ENCODING;
+import static io.netty.handler.codec.http.HttpHeaderValues.CHUNKED;
 import static io.netty.handler.codec.http.HttpHeaderValues.GZIP;
 import static io.netty.handler.codec.http.HttpHeaderValues.KEEP_ALIVE;
 import gribbit.http.request.Request;
@@ -69,6 +71,7 @@ public abstract class GeneralResponse extends Response {
 
     protected String contentType;
     protected long contentLength;
+    protected boolean isChunked;
     protected boolean gzipContent;
     protected boolean contentEncodingGzip;
 
@@ -103,6 +106,10 @@ public abstract class GeneralResponse extends Response {
 
     public long getContentLength() {
         return contentLength;
+    }
+
+    public boolean getIsChunked() {
+        return isChunked;
     }
 
     // -----------------------------------------------------------------------------------------------------
@@ -364,8 +371,13 @@ public abstract class GeneralResponse extends Response {
         // Set content headers -------------------------------------------------------------------------------------
 
         headers.add(CONTENT_TYPE, contentType != null ? contentType : "application/octet-stream");
-        if (contentLength >= 0) {
-            headers.add(CONTENT_LENGTH, Long.toString(contentLength));
+        if (isChunked) {
+            // "Transfer-Encoding: chunked" is used in place of "Content-Length" header
+            headers.add(TRANSFER_ENCODING, CHUNKED);
+        } else {
+            if (contentLength >= 0) {
+                headers.add(CONTENT_LENGTH, Long.toString(contentLength));
+            }
         }
         if (contentEncodingGzip) {
             headers.add(CONTENT_ENCODING, GZIP);

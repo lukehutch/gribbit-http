@@ -46,6 +46,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -201,6 +202,7 @@ public class HttpRequestDecoder extends SimpleChannelInboundHandler<Object> {
     @Override
     public void messageReceived(ChannelHandlerContext ctx, Object msg) {
         try {
+            Log.info("Got message of type " + msg.getClass().getName());
             if (msg instanceof HttpRequest) {
                 // Got a new HTTP request -- decode HTTP headers
                 HttpRequest httpReq = (HttpRequest) msg;
@@ -231,7 +233,8 @@ public class HttpRequestDecoder extends SimpleChannelInboundHandler<Object> {
                     postRequestDecoder = new HttpPostRequestDecoder(httpDataFactory, httpReq);
                 }
 
-            } else if (msg instanceof LastHttpContent) {
+            }
+            if (msg instanceof LastHttpContent || msg instanceof FullHttpRequest) {
                 // Reached end of HTTP request
 
                 if (request != null) {
