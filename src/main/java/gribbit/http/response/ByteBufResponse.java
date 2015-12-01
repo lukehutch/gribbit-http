@@ -25,35 +25,20 @@
  */
 package gribbit.http.response;
 
-import gribbit.http.logging.Log;
 import gribbit.http.request.Request;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.LastHttpContent;
-
-import java.io.IOException;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * Raw ByteBuf response.
  */
 public class ByteBufResponse extends GeneralResponse {
-
     protected ByteBuf content;
-
-    private static final boolean COMPRESS_CONTENT = true;
-
-    /** Create an empty response */
-    public ByteBufResponse(Request request, HttpResponseStatus status) {
-        super(request, status);
-    }
 
     public ByteBufResponse(Request request, HttpResponseStatus status, ByteBuf content, String contentType) {
         super(request, status, contentType);
-        this.gzipContent = COMPRESS_CONTENT && request.acceptEncodingGzip() && content.readableBytes() > 1024
-                && isCompressibleContentType(contentType);
         this.content = content;
     }
 
@@ -63,53 +48,24 @@ public class ByteBufResponse extends GeneralResponse {
 
     @Override
     public void writeResponse(ChannelHandlerContext ctx) {
-        if (this.gzipContent) {
-            ByteBuf gzippedContent = ctx.alloc().buffer(content.readableBytes());
-            try {
-                // TODO: compare speed to using JZlib.GZIPOutputStream
-                try (GZIPOutputStream gzipStream = new GZIPOutputStream(new ByteBufOutputStream(gzippedContent))) {
-                    gzipStream.write(content.array(), 0, content.readableBytes());
-                }
-                // Release the content ByteBuf after last usage, and then use gzipped content instead
-                content.release();
-                content = gzippedContent;
-                contentEncodingGzip = true;
-            } catch (IOException e) {
-                // Should not happen
-                Log.exception("Could not gzip content", e);
-                gzippedContent.release();
-            }
-        }
         contentLength = content.readableBytes();
 
-        sendHeaders(ctx);
+        try {
+            sendHeaders(ctx);
+            if (!request.isHEADRequest()) {
+                ctx.write(content);
+            }
+            ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
 
-        if (!request.isHEADRequest()) {
-            content.retain(); // TODO: is this right? See close() below
-            ctx.write(content);
-        }
-        ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
-    }
-
-    // -----------------------------------------------------------------------------------------------------
-
-    public static boolean isCompressibleContentType(String contentType) {
-        return contentType != null
-                && (contentType.startsWith("text/") || contentType.startsWith("application/javascript")
-                        || contentType.startsWith("application/json") || contentType.startsWith("application/xml")
-                        || contentType.startsWith("image/svg+xml") || contentType
-                            .startsWith("application/x-font-ttf"));
-    }
-
-    // -----------------------------------------------------------------------------------------------------
-
-    @Override
-    public void close() {
-        if (content != null) {
+        } catch (Exception e) {
             if (content.refCnt() > 0) {
                 content.release();
             }
-            content = null;
+            throw e;
         }
+    }
+
+    @Override
+    public void close() {
     }
 }

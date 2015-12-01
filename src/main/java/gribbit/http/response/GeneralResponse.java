@@ -42,11 +42,14 @@ import static io.netty.handler.codec.http.HttpHeaderValues.CHUNKED;
 import static io.netty.handler.codec.http.HttpHeaderValues.GZIP;
 import static io.netty.handler.codec.http.HttpHeaderValues.KEEP_ALIVE;
 import gribbit.http.request.Request;
+import gribbit.http.request.decoder.HttpRequestDecoder;
 import gribbit.http.response.exception.InternalServerErrorException;
 import gribbit.http.response.exception.ResponseException;
+import gribbit.http.utils.ContentTypeUtils;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultHttpResponse;
+import io.netty.handler.codec.http.HttpContentCompressor;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
@@ -72,7 +75,6 @@ public abstract class GeneralResponse extends Response {
     protected String contentType;
     protected long contentLength;
     protected boolean isChunked;
-    protected boolean gzipContent;
     protected boolean contentEncodingGzip;
 
     protected HashMap<String, Cookie> cookies;
@@ -272,6 +274,9 @@ public abstract class GeneralResponse extends Response {
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.RFC_1123_DATE_TIME.withZone(UTC);
 
     protected void sendHeaders(ChannelHandlerContext ctx) {
+
+        // Set general headers ---------------------------------------------------------------------------------------
+
         DefaultHttpResponse httpResponse = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
         HttpHeaders headers = httpResponse.headers();
         headers.add(SERVER, SERVER_IDENTIFIER);
@@ -383,7 +388,16 @@ public abstract class GeneralResponse extends Response {
             headers.add(CONTENT_ENCODING, GZIP);
         }
 
-        // Send headers
+        // Dynamically add compression for the response content if necessary ---------------------------------------
+        
+        if (request.acceptEncodingGzip() && (isChunked || contentLength > 1024)
+                && ContentTypeUtils.isCompressibleContentType(contentType)) {
+            ctx.pipeline().addAfter(HttpRequestDecoder.NAME_IN_PIPELINE, "HttpContentCompressor",
+                    new HttpContentCompressor(1));
+        }
+
+        // Send headers --------------------------------------------------------------------------------------------
+        
         ctx.write(httpResponse);
     }
 

@@ -286,18 +286,21 @@ public class GribbitHttpServer {
                                 // TODO: unify this with HTTP 1.1 treatment in http2OrHttpHandler
 
                                 p.addLast(new HttpServerCodec());
+                                p.addLast(new HttpContentDecompressor());
                                 p.addLast(new HttpObjectAggregator(65536));
                                 p.addLast(new ChunkedWriteHandler());
-                                p.addLast(httpRequestDecoder);
-                                
-//                                // p.addLast(new HttpContentDecompressor());
-//                                p.addLast(new HttpServerCodec());
-//                                // TODO: We're currently doing manual aggregation of chunked requests
-//                                // (without limiting len) 
-//                                p.addLast(new HttpObjectAggregator(65536));
-//                                p.addLast(new ChunkedWriteHandler());
-//                                // p.addLast(new WebSocketServerCompressionHandler());
-//                                p.addLast(/*requestDecoderGroup, */ httpRequestDecoder);
+                                // The name is needed in the last handler, because it is used to dynamically add in
+                                // HttpContentCompressor if the content in the response needs to be compressed.
+                                p.addLast(HttpRequestDecoder.NAME_IN_PIPELINE, httpRequestDecoder);
+
+                                //                                // p.addLast(new HttpContentDecompressor());
+                                //                                p.addLast(new HttpServerCodec());
+                                //                                // TODO: We're currently doing manual aggregation of chunked requests
+                                //                                // (without limiting len) 
+                                //                                p.addLast(new HttpObjectAggregator(65536));
+                                //                                p.addLast(new ChunkedWriteHandler());
+                                //                                // p.addLast(new WebSocketServerCompressionHandler());
+                                //                                p.addLast(/*requestDecoderGroup, */ httpRequestDecoder);
                             }
                         }
                     });

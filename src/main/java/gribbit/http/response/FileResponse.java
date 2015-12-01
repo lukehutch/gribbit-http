@@ -30,6 +30,7 @@ import gribbit.http.request.Request;
 import gribbit.http.response.exception.NotFoundException;
 import gribbit.http.response.exception.NotModifiedException;
 import gribbit.http.response.exception.ResponseException;
+import gribbit.http.utils.ContentTypeUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.HttpChunkedInput;
@@ -42,72 +43,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 
 public class FileResponse extends GeneralResponse implements AutoCloseable {
     private RandomAccessFile raf;
-
-    // -------------------------------------------------------------------------------------------------------------
-
-    private static <T> HashMap<T, T> toMap(T[][] pairs) {
-        HashMap<T, T> map = new HashMap<>();
-        for (T[] pair : pairs) {
-            map.put(pair[0], pair[1]);
-        }
-        return map;
-    }
-
-    private static final Map<String, String> EXTENSION_TO_MIMETYPE = toMap(new String[][] {
-            // See https://github.com/h5bp/server-configs-nginx/blob/master/mime.types for more
-            { "txt", "text/plain" }, //
-            { "htm", "text/html" }, //
-            { "html", "text/html" }, //
-            { "js", "application/javascript" }, //
-            { "json", "application/json" }, //
-            { "css", "text/css" }, //
-            { "xml", "application/xml" }, //
-            { "ico", "image/x-icon" }, //
-            { "png", "image/png" }, //
-            { "webp", "image/webp" }, //
-            { "gif", "image/gif" }, //
-            { "mng", "image/mng" }, //
-            { "jpg", "image/jpeg" }, //
-            { "jpeg", "image/jpeg" }, //
-            { "svg", "image/svg+xml" }, //
-            { "svgz", "image/svg+xml" }, // Served as image/svg+xml with a "Content-Encoding: gzip" header
-            { "gz", "application/x-gzip" }, //
-            { "bz2", "application/x-bzip2" }, //
-            { "zip", "application/zip" }, //
-            { "pdf", "application/pdf" }, //
-            { "ogg", "audio/ogg" }, //
-            { "mp3", "audio/mpeg" }, //
-            { "wav", "audio/x-wav" }, //
-            { "csv", "text/comma-separated-values" }, //
-
-            // Font types:
-            { "ttf", "application/x-font-ttf" }, //
-            { "ttc", "application/x-font-ttf" }, //
-            { "otf", "application/x-font-opentype" }, //
-            { "woff", "application/font-woff" }, //
-            { "woff2", "application/font-woff2" }, //
-            { "eot", "application/vnd.ms-fontobject" }, //
-            { "sfnt", "application/font-sfnt" }, //
-    });
-
-    private static <T> HashSet<T> toSet(T[] elts) {
-        HashSet<T> set = new HashSet<>();
-        for (T elt : elts) {
-            set.add(elt);
-        }
-        return set;
-    }
-
-    private static final HashSet<String> FONT_EXTENSION = toSet(new String[] { "ttf", "ttc", "otf", "woff",
-            "woff2", "eot", "sfnt" });
-
-    // -------------------------------------------------------------------------------------------------------------
 
     public FileResponse(Request request, String path) throws ResponseException {
         super(request, HttpResponseStatus.OK);
@@ -136,7 +74,7 @@ public class FileResponse extends GeneralResponse implements AutoCloseable {
         if (dotIdx > 0 && slashIdx < dotIdx) {
             String leaf = path.substring(slashIdx + 1).toLowerCase();
             String ext = path.substring(dotIdx + 1).toLowerCase();
-            String mimeType = EXTENSION_TO_MIMETYPE.get(ext);
+            String mimeType = ContentTypeUtils.EXTENSION_TO_MIMETYPE.get(ext);
             if (mimeType != null) {
                 contentType = mimeType;
             }
@@ -146,7 +84,8 @@ public class FileResponse extends GeneralResponse implements AutoCloseable {
             }
             // Fonts need a CORS header if served across domains, to work in Firefox and IE (and according to spec)
             // -- see http://davidwalsh.name/cdn-fonts
-            if (FONT_EXTENSION.contains(ext) || leaf.equals("font.css") || leaf.equals("fonts.css")) {
+            if (ContentTypeUtils.FONT_EXTENSION.contains(ext) || leaf.equals("font.css")
+                    || leaf.equals("fonts.css")) {
                 addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, "*");
             }
         }
@@ -157,11 +96,11 @@ public class FileResponse extends GeneralResponse implements AutoCloseable {
         // FileRegions cannot be used with SSL, have to use chunked content.
         // TODO: Does this work with HTTP2?
         isChunked |= ctx.pipeline().get(SslHandler.class) != null;
-        
+
         sendHeaders(ctx);
 
+        // TODO: Add content compression.
         if (!request.isHEADRequest()) {
-
             // Write file content to channel. Both methods will close file after sending, see:
             // https://github.com/netty/netty/issues/2474#issuecomment-117905496
             if (!isChunked) {

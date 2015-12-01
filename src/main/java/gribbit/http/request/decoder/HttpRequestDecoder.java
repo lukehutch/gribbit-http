@@ -83,7 +83,6 @@ import java.util.HashMap;
 import java.util.List;
 
 public class HttpRequestDecoder extends SimpleChannelInboundHandler<Object> {
-
     private Request request;
     private HttpPostRequestDecoder postRequestDecoder;
     private WebSocketHandler webSocketHandler;
@@ -94,6 +93,8 @@ public class HttpRequestDecoder extends SimpleChannelInboundHandler<Object> {
     private HashMap<Class<? extends ResponseException>, //
     HttpErrorHandler<? extends ResponseException>> errorHandlers;
 
+    public static final String NAME_IN_PIPELINE = HttpRequestDecoder.class.getSimpleName();
+    
     // -------------------------------------------------------------------------------------------------------------
 
     // Use disk for HTTP data if size >16kB 
