@@ -395,17 +395,22 @@ public abstract class Response implements AutoCloseable {
                 headers.add(CONTENT_LENGTH, Long.toString(contentLength));
             }
         }
+
+        // This header is only typically for .svgz files, which are supposed to be served with a content type of
+        // "image/svg+xml" but with a "Content-Encoding: gzip" header. For auto-compressed content, this header
+        // will be added automatically by HttpContentCompressor (below).
         if (contentEncodingGzip) {
             headers.add(CONTENT_ENCODING, GZIP);
         }
 
         // Dynamically add compression for the response content if necessary ---------------------------------------
 
-        if (request.acceptEncodingGzip() && (isChunked || contentLength > 1024)
-                && ContentTypeUtils.isCompressibleContentType(contentType)) {
-            ctx.pipeline().addAfter(HttpRequestDecoder.NAME_IN_PIPELINE, "HttpContentCompressor",
-                    new HttpContentCompressor(1));
-        }
+        // TODO: compression is disabled for now, see: http://andreas.haufler.info/2014/01/making-http-content-compression-work-in.html
+        //        if (request.acceptEncodingGzip() && (isChunked || contentLength > 0)
+        //                && ContentTypeUtils.isCompressibleContentType(contentType)) {
+        //            ctx.pipeline().addBefore(HttpRequestDecoder.NAME_IN_PIPELINE, "HttpContentCompressor",
+        //                    new HttpContentCompressor(1));
+        //        }
 
         // Send headers --------------------------------------------------------------------------------------------
 

@@ -49,7 +49,7 @@ public class ByteBufResponse extends Response {
     @Override
     public void writeResponse(ChannelHandlerContext ctx) {
         contentLength = content.readableBytes();
-
+        
         try {
             sendHeaders(ctx);
             if (!request.isHEADRequest()) {
