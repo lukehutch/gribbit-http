@@ -117,41 +117,40 @@ public class FileResponse extends GeneralResponse implements AutoCloseable {
         File f = new File(path);
         try {
             raf = new RandomAccessFile(path, "r");
-            if (!f.isFile() || f.isHidden()) {
-                throw new NotFoundException();
-            }
-
-            // Check last-modified timestamp against the If-Modified-Since header timestamp in the request
-            // (resolution is 1 sec)
-            lastModifiedEpochSeconds = f.lastModified() / 1000;
-            if (!request.contentModified(lastModifiedEpochSeconds)) {
-                // File has not been modified since it was last cached -- return Not Modified
-                throw new NotModifiedException();
-            }
-
-            int dotIdx = path.lastIndexOf('.'), slashIdx = path.lastIndexOf(File.separatorChar);
-            if (dotIdx > 0 && slashIdx < dotIdx) {
-                String leaf = path.substring(slashIdx + 1).toLowerCase();
-                String ext = path.substring(dotIdx + 1).toLowerCase();
-                String mimeType = EXTENSION_TO_MIMETYPE.get(ext);
-                if (mimeType != null) {
-                    contentType = mimeType;
-                }
-                // .svgz files need a "Content-Encoding: gzip" header -- see http://kaioa.com/node/45
-                if (ext.equals("svgz")) {
-                    contentEncodingGzip = true;
-                }
-                // Fonts need a CORS header if served across domains, to work in Firefox and IE (and according to spec)
-                // -- see http://davidwalsh.name/cdn-fonts
-                if (FONT_EXTENSION.contains(ext) || leaf.equals("font.css") || leaf.equals("fonts.css")) {
-                    addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-                }
-            }
-
-            contentLength = f.length();
-
         } catch (FileNotFoundException e) {
             throw new NotFoundException();
+        }
+        if (!f.isFile() || f.isHidden()) {
+            throw new NotFoundException();
+        }
+
+        contentLength = f.length();
+
+        // Check last-modified timestamp against the If-Modified-Since header timestamp in the request
+        // (resolution is 1 sec)
+        lastModifiedEpochSeconds = f.lastModified() / 1000;
+        if (!request.contentModified(lastModifiedEpochSeconds)) {
+            // File has not been modified since it was last cached -- return Not Modified
+            throw new NotModifiedException();
+        }
+
+        int dotIdx = path.lastIndexOf('.'), slashIdx = path.lastIndexOf(File.separatorChar);
+        if (dotIdx > 0 && slashIdx < dotIdx) {
+            String leaf = path.substring(slashIdx + 1).toLowerCase();
+            String ext = path.substring(dotIdx + 1).toLowerCase();
+            String mimeType = EXTENSION_TO_MIMETYPE.get(ext);
+            if (mimeType != null) {
+                contentType = mimeType;
+            }
+            // .svgz files need a "Content-Encoding: gzip" header -- see http://kaioa.com/node/45
+            if (ext.equals("svgz")) {
+                contentEncodingGzip = true;
+            }
+            // Fonts need a CORS header if served across domains, to work in Firefox and IE (and according to spec)
+            // -- see http://davidwalsh.name/cdn-fonts
+            if (FONT_EXTENSION.contains(ext) || leaf.equals("font.css") || leaf.equals("fonts.css")) {
+                addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+            }
         }
     }
 
